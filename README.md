@@ -17,7 +17,7 @@ The advancement of sequencing technologies has made it feasible for researchers 
 - After downloading, you can install it directly. When finished, a folder with the same name have been made. Enter the folder BellfortSequenceParser, run the **BellfortSequenceParser.EXE** to go!
 
 ## Installation from Source
-There are several dependencies necessarily preinstalled in your Python interpreter:
+This option is only recommended for Pythoneer. There are several dependencies necessarily preinstalled in your Python interpreter:
 
 - **Numpy**
 
