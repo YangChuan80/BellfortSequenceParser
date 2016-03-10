@@ -27,13 +27,23 @@ def reverseComplement(sequence):
 ### FASTQ File Browse
 
 def buttonBrowseFASTQ():
-    global filenameFASTQ
+    global filenameFASTQ, indicator_preprocess
     
     try:
         filenameFASTQ = filedialog.askopenfilename(filetypes=(('FASTQ files', '*.fastq'), 
                                                               ('All files', '*.*')))
         text_fileFASTQ.delete('1.0', tk.END)
         text_fileFASTQ.insert('1.0', filenameFASTQ.split('/')[-1])
+        
+        # Reset the progress bar///////////////
+        progressbar['value'] = 0
+        progressbar_loadFASTQ['value'] = 0
+        
+        # Reset the percentage
+        text_percentage.delete('1.0', tk.END)
+        text_percentage.insert('1.0', str('0%'))
+        
+        indicator_preprocess = 0
     except:
         filenameFASTQ = ''   
 
@@ -496,7 +506,7 @@ def browse():
     text_time.insert('1.0', str(delta_time))           
 
 def buttonExport():   
-    if filenameSequences == '' or filenameFASTQ == '':
+    if filenameSequences == '' or (filenameFASTQ == '' and len(filenameFASTQs) == 0):
         messagebox.showwarning("No File Loaded", 
                                "Sorry, no file loaded! Please choose sequence file and FASTQ file first.")
     else:
@@ -554,6 +564,190 @@ def buttonAbout():
 
     about_root.mainloop()
 
+### Batch Mode
+#### FASTQ Files Loaded Button
+
+def buttonBrowseFASTQs():
+    global filenameFASTQs
+    
+    try:
+        filenameFASTQs = filedialog.askopenfilenames(filetypes=(('FASTQ files', '*.fastq'), 
+                                                              ('All files', '*.*')))
+        text_fileFASTQ.delete('1.0', tk.END)
+        text_fileFASTQ.insert('1.0', filenameFASTQ.split('/')[-1])
+        
+        # Reset the progress bar///////////////
+        progressbar['value'] = 0
+        progressbar_loadFASTQ['value'] = 0
+        
+        # Reset the percentage
+        text_percentage.delete('1.0', tk.END)
+        text_percentage.insert('1.0', str('0%'))
+        
+        indicator_preprocess = 0
+    except:
+        filenameFASTQs = ''
+
+#### Batch Process Button Series
+
+def loadFASTQ_batch(filenameFASTQ):
+    global reads
+    
+    start_time = time.time() 
+    
+    f = open(filenameFASTQ)
+
+    reads = []
+
+    #try:
+    while 1:
+        name = f.readline().rstrip()
+        sequence = f.readline().rstrip()
+        f.readline()
+        quality = f.readline().rstrip()
+
+        if len(name) == 0:
+            break
+
+        union = name, sequence
+
+        reads.append(union)
+
+    f.close()
+
+    end_time = time.time()
+    delta_time = end_time - start_time
+
+    text_time.delete('1.0', tk.END)
+    text_time.insert('1.0', str(delta_time))  
+
+    text_readNum.delete('1.0', tk.END)
+    text_readNum.insert('1.0', str(len(reads)))  
+
+    '''
+    except:
+        messagebox.showwarning("File Loading Failed", 
+                               "Sorry, file loading failed! Please check the file format.")    '''
+
+def preprocessFASTQ_batch():
+    global reads, kmer_dict_reads, indicator_batch, gain_file
+    
+    try:  
+        gotten = text_sequence_len.get('1.0', tk.END)
+        k = int(gotten.rstrip())
+        
+        if k > len(reads[0][1]):
+            messagebox.showwarning("Target Sequence Length Error", 
+                                   "Sorry, the target sequence length is more than read length. Please check.")
+        elif k < 3:
+            messagebox.showwarning("Sequence Too Short", 
+                                   "Sorry, the target sequence length is too short which will make the program running slowly. Please check.")
+        elif filenameSequences == '':
+            messagebox.showwarning("No Sequences Loaded", 
+                                   "Sorry, no sequences loaded! Please load sequences first.")
+        else:
+            kmer_dict_reads = {}
+                        
+            gain = gain_file/(len(reads)*2)
+
+            for read in reads:
+                for i in range(len(read[1])-k+1):
+                    kmer_dict_reads[read[1][i:i+k]] = set()
+                    
+                indicator_batch += gain 
+                
+            for read in reads:
+                for i in range(len(read[1])-k+1):
+                    kmer_dict_reads[read[1][i:i+k]].add(read)
+                    
+                indicator_batch += gain 
+
+    except NameError:
+        messagebox.showwarning("No FASTQ File Loaded", 
+                               "Sorry, no loaded FASTQ file found! Please load FASTQ file first.")
+
+def matchAll_batch():
+    global  kmer_dict_reads, df, indicator_batch, gain
+    
+    try:       
+        arr = np.array(df)
+
+        for i in range(len(arr)):
+            key1 = arr[i,2]
+            key2 = reverseComplement(key1)
+
+            try:
+                n1 = len(kmer_dict_reads[key1])
+            except KeyError:
+                n1 = 0
+
+            try:
+                n2 = len(kmer_dict_reads[key2])
+            except KeyError:
+                n2 = 0
+
+            arr[i, 4] += n1 + n2
+            arr[i, 5] += 1
+
+
+        df = pd.DataFrame(arr, columns = ['gene_id', 'UID', 'seq', 'Reserved', 'Count', 'Tag'])
+        #df = df.set_index('UID', drop=False) 
+
+    except NameError:
+        messagebox.showwarning("No FASTQ Preprocessed or No Sequences Loaded", 
+                               "Sorry, no FASTQ preprocess implemented or no sequences file loaded! Please preprocess FASTQ or load sequences first.")    
+
+def batchProcess():
+    global filenameFASTQs, indicator_batch, gain_file
+    
+    start_time = time.time() 
+    
+    if filenameFASTQs == '':
+        messagebox.showwarning('No FASTQ Chosen', 
+                               'Sorry, no FASTQ file chosen! Please browse and choose FASTQ file first.')   
+        
+    elif len(df) == 0:
+        messagebox.showwarning("No Sequences Loaded", 
+                                   "Sorry, no sequences loaded! Please load sequences first.")
+    else:
+        indicator_batch = 0
+        gain_file = 100/len(filenameFASTQs)
+        
+        for filenameFASTQ in filenameFASTQs:
+            loadFASTQ_batch(filenameFASTQ)
+            preprocessFASTQ_batch()
+            matchAll_batch()
+            
+        indicator_batch = 100
+            
+        messagebox.showinfo('Matching Completed', 
+                                'Tada! Counting of sequences matched successfully completed!')  
+        
+    delta_time = time.time() - start_time
+    
+    text_time.delete('1.0', tk.END)
+    text_time.insert('1.0', str(delta_time))   
+
+def start_batch_thread(event):
+    global batch_thread, indicator_batch
+    batch_thread = threading.Thread(target=batchProcess)
+    batch_thread.daemon = True
+    
+    progressbar_batch['value'] = indicator_batch
+    text_percentage_batch.delete('1.0', tk.END)
+    text_percentage_batch.insert('1.0', str(int(indicator_batch))+'%')
+    
+    batch_thread.start()
+    root.after(20, check_batch_thread)
+
+def check_batch_thread():
+    if batch_thread.is_alive():
+        progressbar_batch['value'] = indicator_batch
+        text_percentage_batch.delete('1.0', tk.END)
+        text_percentage_batch.insert('1.0', str(int(indicator_batch))+'%')
+        
+        root.after(20, check_batch_thread)    
+
 ## Main Flow
 
 headers = ['gene_id', 'UID', 'seq', 'Reserved', 'count', 'tag']
@@ -564,10 +758,12 @@ root = tk.Tk()
 indicator_preprocess = 0
 indicator_loadSequences = 0
 indicator_matchAll = 0
+indicator_batch = 0
 filenameSequences = ''
 filenameFASTQ = ''
 recordNum = 0
 count = 0
+df = pd.DataFrame([])
 
 root.geometry("{0}x{1}+0+0".format(root.winfo_screenwidth(), root.winfo_screenheight()))
 #root.attributes('-fullscreen', True)
@@ -577,7 +773,7 @@ root.iconbitmap('dna.ico')
 
 # Multicolumn Listbox/////////////////////////////////////////////////////////////////////////////
 table = ttk.Treeview(height="20", columns=headers, selectmode="extended")
-table.pack(padx=10, pady=20, ipadx=1200, ipady=130)
+table.pack(padx=10, pady=20, ipadx=1200, ipady=100)
 
 i = 1
 for header in headers:
@@ -600,14 +796,15 @@ vsb.pack(side = tk.RIGHT, fill = tk.Y)
 hsb.pack(side = tk.BOTTOM, fill = tk.X)        
 
 #//////////////////////////////////////////////////////////////////////////////////////////////
-y0 =370
-y1 = 410
-y2 = 480
-y3 = 520
-y4 = 580
-y5 = 615
-y6 = 655
-y7 = 695
+y0 =310
+y1 = 350
+y2 = 420
+y3 = 460
+y4 = 520
+y5 = 555
+y6 = 595
+y7 = 645
+y8 = 695
 # Text /////////////////////////////////////////////////////////////////////////////////////
 text_recordNum=tk.Text(root, width=18, height=1, font=('tahoma', 9), bd=2, wrap='none')
 text_recordNum.place(x=840, y=y0)
@@ -657,7 +854,7 @@ label_readNumDivided1.place(x=255,y=y3+10)
 label_readNumDivided2=tk.Label(root, text='reads', font=('tahoma', 9))
 label_readNumDivided2.place(x=460,y=y3+10)
 text_readNumDivided.delete('1.0', tk.END)
-text_readNumDivided.insert('1.0', str(500000))
+text_readNumDivided.insert('1.0', str(250000))
 
 text_readNum=tk.Text(root, width=22, height=1, font=('tahoma', 9), bd=2, wrap='none')
 text_readNum.place(x=400, y=y6)
@@ -665,14 +862,17 @@ label_readNum=tk.Label(root, text='reads', font=('tahoma', 9))
 label_readNum.place(x=590,y=y6)
 
 text_time=tk.Text(root, width=15, height=1, font=('tahoma', 9), bd=2)
-text_time.place(x=115, y=y7)
+text_time.place(x=115, y=y8)
 label_time=tk.Label(root, text='Time:', font=('tahoma', 9))
-label_time.place(x=60,y=y7)
+label_time.place(x=60,y=y8)
 label_seconds=tk.Label(root, text='second(s)', font=('tahoma', 9))
-label_seconds.place(x=250,y=y7)
+label_seconds.place(x=250,y=y8)
 
 text_percentage=tk.Text(root, width=8, height=1, font=('tahoma', 9), bg='gray95', bd=0)
 text_percentage.place(x=1260, y=y4)
+
+text_percentage_batch=tk.Text(root, width=8, height=1, font=('tahoma', 9), bg='gray95', bd=0)
+text_percentage_batch.place(x=1260, y=y7)
 
 # ProgressBar /////////////////////////////////////////////////////////////////////////////
 progressbar_loadSequences = ttk.Progressbar(root, length=200, maximum=100, mode='determinate')
@@ -684,6 +884,8 @@ progressbar_loadFASTQ.place(x=400,y=y4)
 progressbar = ttk.Progressbar(root, length=460, maximum=100, mode='determinate')
 progressbar.place(x=760,y=y4)
 
+progressbar_batch = ttk.Progressbar(root, length=520, maximum=100, mode='determinate')
+progressbar_batch.place(x=700,y=y7)
 
 # Button /////////////////////////////////////////////////////////////////////////////////
 button_loadSequences = ttk.Button(root, text="Load sgRNA", width=20, command=loadSequences)
@@ -717,13 +919,19 @@ button_matchAll = ttk.Button(root, text="Match All", width=20, command=lambda:st
 button_matchAll.place(x=1180, y=y3)
 
 button_about = ttk.Button(root, text="About", width=20, command=buttonAbout)
-button_about.place(x=980, y=y7)
+button_about.place(x=980, y=y8)
 
 button_export = ttk.Button(root, text="Export", width=20, command=buttonExport)
-button_export.place(x=720, y=y7)
+button_export.place(x=720, y=y8)
 
 button_exit = ttk.Button(root, text="Exit", width=20, command=root.destroy)
-button_exit.place(x=1180, y=y7)
+button_exit.place(x=1180, y=y8)
+
+button_browseFASTQs = ttk.Button(root, text="Browse FASTQs...", width=25, command=buttonBrowseFASTQs)
+button_browseFASTQs.place(x=60, y=y7)
+
+button_batchProcess = ttk.Button(root, text="Batch Process", width=30, command=lambda:start_batch_thread(None))
+button_batchProcess.place(x=400, y=y7)
 
 root.bind('<Return>', start_preprocess_thread)
 root.bind('<Return>', start_loadFASTQ_thread)
