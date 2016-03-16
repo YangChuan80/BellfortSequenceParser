@@ -6,6 +6,12 @@ A dialog-based GUI application of gene read-alignment parsing and analysis.
 <br>Department of Molecular and Human Genetics
 <br>Baylor College of Medicine
 
+[![Windows Build status](https://img.shields.io/badge/Windows-passing-brightgreen.svg)](https://github.com/YangChuan80/WillowbendDICOM)
+[![MIT license](https://img.shields.io/badge/license-MIT%20License-blue.svg)](LICENSE)
+[![Dowloads](https://img.shields.io/badge/downloads-43M-green.svg)](https://github.com/YangChuan80/BellfortSequenceParser/blob/master/BellfortSequenceParser_Installer.exe?raw=true)
+[![Medicine Application](https://img.shields.io/badge/application-medicine-red.svg)](README.md)
+[![Home](https://img.shields.io/badge/GitHub-home-ff69b4.svg)](https://github.com/YangChuan80)
+
 ## Introduction
 **Read Alignment Problem:** 
 The advancement of sequencing technologies has made it feasible for researchers to consider many high-throughput biological applications. A core step of these applications is to align an enormous amount of short DNA sequences to other enormous amounts of reads in FASTQ files. A first generation of hash table-based methods has been developed, including MAQ, which is accurate, feature rich and fast enough to align short reads from a single individual. Python dictionaries are implemented using hash tables. It is an array whose indexes are obtained using a hash function on the keys. The goal of a hash function is to distribute the keys evenly in the array. A good hash function minimizes the number of collisions e.g. different keys having the same hash.  
