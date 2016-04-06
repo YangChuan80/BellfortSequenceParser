@@ -7,7 +7,7 @@ A dialog-based GUI application of gene read-alignment parsing and analysis.
 <br>Baylor College of Medicine
 
 [![Windows Build status](https://img.shields.io/badge/Windows-passing-brightgreen.svg)](https://github.com/YangChuan80/WillowbendDICOM)
-[![MIT license](https://img.shields.io/badge/license-MIT%20License-blue.svg)](LICENSE)
+[![BSD license](https://img.shields.io/badge/license-BSD%20License-blue.svg)](LICENSE)
 [![Dowloads](https://img.shields.io/badge/downloads-93M-green.svg)](https://github.com/YangChuan80/BellfortSequenceParser/blob/master/BellfortSequenceParser_Installer.exe?raw=true)
 [![Medicine Application](https://img.shields.io/badge/application-medicine-red.svg)](README.md)
 [![Home](https://img.shields.io/badge/GitHub-home-ff69b4.svg)](https://github.com/YangChuan80)
