@@ -62,7 +62,9 @@ Python interpreter have to be Python 3.4 or higher.
 - Use **Export** to output a csv file of your count results. Your count report is ready! Congratulations!
 
 ## License
+
 Copyright (c) 2016, Chuan Yang
+
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
