@@ -128,7 +128,7 @@ def divideFASTQ():
     file_no = 1
 
     f_input = open(filenameFASTQ)        
-    f_output = open(filenameFASTQ+'.folder/' + 'Reads_Slice_No_' + str(file_no) + '.fastq', 'w') 
+    f_output = open(filenameFASTQ+'.folder/' + filenameFASTQ.split('/')[-1] + '__Slice_No_' + str(file_no) + '.fastq', 'w') 
 
     while 1:
         # Input ///////////////////////////////////
@@ -152,7 +152,7 @@ def divideFASTQ():
         if line_num == readNumDivided:                
             f_output.close() 
             file_no += 1
-            f_output = open(filenameFASTQ+'.folder/' + 'Reads_Slice_No_' + str(file_no) + '.fastq', 'w')
+            f_output = open(filenameFASTQ+'.folder/' + filenameFASTQ.split('/')[-1] + '__Slice_No_' + str(file_no) + '.fastq', 'w')
             line_num = 0                
 
     end_time = time.time()
@@ -514,7 +514,7 @@ def buttonExport():
             len(df)
             len(reads)
             directory = filedialog.askdirectory()
-            df.to_csv(directory + '/Counts of ' + filenameSequences.split('/')[-1] + ' matched with ' + filenameFASTQ.split('/')[-1] + '.csv')
+            df.to_csv(directory + '/Counts of ' + filenameSequences.split('/')[-1] + '__matchedWith__' + filenameFASTQs[0].split('/')[-1] + '.csv')
             messagebox.showinfo("File Exported", "File of counted sequences successfully exported!")        
         except NameError:
             messagebox.showwarning("Error: No Counted DataFrame Generated", 
@@ -573,8 +573,11 @@ def buttonBrowseFASTQs():
     try:
         filenameFASTQs = filedialog.askopenfilenames(filetypes=(('FASTQ files', '*.fastq'), 
                                                               ('All files', '*.*')))
-        text_fileFASTQ.delete('1.0', tk.END)
-        text_fileFASTQ.insert('1.0', filenameFASTQ.split('/')[-1])
+        text_fileFASTQs.delete('1.0', tk.END)
+        text_fileFASTQs.insert('1.0', filenameFASTQs[0].split('/')[-1].split('__')[0])
+        
+        text_fileNum.delete('1.0', tk.END)
+        text_fileNum.insert('1.0', str(len(filenameFASTQs)))
         
         # Reset the progress bar///////////////
         progressbar['value'] = 0
@@ -609,7 +612,7 @@ def loadFASTQ_batch(filenameFASTQ):
         if len(name) == 0:
             break
 
-        union = name, sequence
+        union = name, sequence, quality
 
         reads.append(union)
 
@@ -667,10 +670,12 @@ def preprocessFASTQ_batch():
                                "Sorry, no loaded FASTQ file found! Please load FASTQ file first.")
 
 def matchAll_batch():
-    global  kmer_dict_reads, df, indicator_batch, gain
+    global  kmer_dict_reads, df, indicator_batch, gain, reads_matched
     
     try:       
         arr = np.array(df)
+        
+        reads_matched = set()
 
         for i in range(len(arr)):
             key1 = arr[i,2]
@@ -685,9 +690,20 @@ def matchAll_batch():
                 n2 = len(kmer_dict_reads[key2])
             except KeyError:
                 n2 = 0
-
+                
             arr[i, 4] += n1 + n2
             arr[i, 5] += 1
+            
+            if n1 != 0:
+                for read in kmer_dict_reads[key1]:
+                    start_point = read[1].find(key1)
+                    reads_matched.add((read[0], key1, read[2][start_point : start_point+len(key1)]))
+                    
+            if n2 != 0:
+                for read in kmer_dict_reads[key2]:
+                    start_point = read[1].find(key2)
+                    reads_matched.add((read[0], key2, read[2][start_point : start_point+len(key2)]))
+            
 
 
         df = pd.DataFrame(arr, columns = ['gene_id', 'UID', 'seq', 'Reserved', 'Count', 'Tag'])
@@ -697,8 +713,23 @@ def matchAll_batch():
         messagebox.showwarning("No FASTQ Preprocessed or No Sequences Loaded", 
                                "Sorry, no FASTQ preprocess implemented or no sequences file loaded! Please preprocess FASTQ or load sequences first.")    
 
+def autoExport():   
+    if filenameSequences == '' or (filenameFASTQ == '' and len(filenameFASTQs) == 0):
+        messagebox.showwarning("No File Loaded", 
+                               "Sorry, no file loaded! Please choose sequence file and FASTQ file first.")
+    else:
+        try:
+            len(df)
+            len(reads)
+            
+            df.to_csv(filenameSequences + '__matchedWith__' + filenameFASTQs[0].split('/')[-1].split('__')[0] + '.csv')
+            
+        except NameError:
+            messagebox.showwarning("Error: No Counted DataFrame Generated", 
+                               "Sorry, no effective counted DataFrame generated! Please check the previous workflow.")
+
 def batchProcess():
-    global filenameFASTQs, indicator_batch, gain_file
+    global filenameFASTQs, indicator_batch, gain_file, kmer_dict_reads, reads_matched
     
     start_time = time.time() 
     
@@ -713,17 +744,37 @@ def batchProcess():
         indicator_batch = 0
         gain_file = 100/len(filenameFASTQs)
         
+        # ///////////////// Main Stream of Batch Match ////////////////////////////////////////////////////
+        
+        f_trimmed = open(filenameFASTQs[0].split('__')[0] + '__trimmedBy__' + filenameSequences.split('/')[-1] + '.fastq', 'w')
+        
+        reads_matched = set()
+        
         for filenameFASTQ in filenameFASTQs:
             loadFASTQ_batch(filenameFASTQ)
             preprocessFASTQ_batch()
             matchAll_batch()
             
+            for read_matched in reads_matched:
+                f_trimmed.write(read_matched[0]+'\n')
+                f_trimmed.write(read_matched[1]+'\n')
+                f_trimmed.write('+\n')
+                f_trimmed.write(read_matched[2]+'\n')
+                
+        f_trimmed.close()
+        
+        autoExport()  
+        
+        # Attention! Memory Recollected !!!!!!!!!!
+        kmer_dict_reads = {}
+        
         indicator_batch = 100
             
-        messagebox.showinfo('Matching Completed', 
-                                'Tada! Counting of sequences matched successfully completed!')  
+        messagebox.showinfo('Matching Completed', 'Tada! Counting of sequences matched successfully completed!')  
         
     delta_time = time.time() - start_time
+    
+    
     
     text_time.delete('1.0', tk.END)
     text_time.insert('1.0', str(delta_time))   
@@ -817,6 +868,9 @@ text_fileSequences.place(x=60, y=y0)
 text_fileFASTQ=tk.Text(root, width=36, height=1, font=('tahoma', 9), bd=2, wrap='none')
 text_fileFASTQ.place(x=60, y=y4)
 
+text_fileFASTQs=tk.Text(root, width=36, height=1, font=('tahoma', 9), bd=2, wrap='none')
+text_fileFASTQs.place(x=60, y=y6+10)
+
 text_count=tk.Text(root, width=16, height=1, font=('tahoma', 9), bd=2)
 text_count.place(x=1000, y=y3)
 label_count=tk.Label(root, text='Count:', font=('tahoma', 9))
@@ -856,10 +910,15 @@ label_readNumDivided2.place(x=460,y=y3+10)
 text_readNumDivided.delete('1.0', tk.END)
 text_readNumDivided.insert('1.0', str(250000))
 
+text_fileNum=tk.Text(root, width=12, height=1, font=('tahoma', 9), bd=2, wrap='none')
+text_fileNum.place(x=400, y=y6+10)
+label_fileNum=tk.Label(root, text='files', font=('tahoma', 9))
+label_fileNum.place(x=520,y=y6+10)
+
 text_readNum=tk.Text(root, width=22, height=1, font=('tahoma', 9), bd=2, wrap='none')
-text_readNum.place(x=400, y=y6)
+text_readNum.place(x=700, y=y6+10)
 label_readNum=tk.Label(root, text='reads', font=('tahoma', 9))
-label_readNum.place(x=590,y=y6)
+label_readNum.place(x=890,y=y6+10)
 
 text_time=tk.Text(root, width=15, height=1, font=('tahoma', 9), bd=2)
 text_time.place(x=115, y=y8)
