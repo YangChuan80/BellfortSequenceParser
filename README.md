@@ -1,7 +1,9 @@
 # Bellfort Sequence Parser
 A dialog-based GUI application of gene read-alignment parsing and analysis.
 
-**Chen Lab**
+**Chuan Yang**, M.D.
+<br>Visiting Research Associate
+<br>Chen Lab
 <br>Human Genome Sequencing Center
 <br>Department of Molecular and Human Genetics
 <br>Baylor College of Medicine
@@ -19,8 +21,10 @@ The advancement of sequencing technologies has made it feasible for researchers 
 
 **Bellfort Sequence Parser** is a dialog-based GUI application solving the read alignment problems and corresponding I/O implementations. It has a friendly user-interface to perform FASTQ/sequence file browsing, loading and preprocessing. The algorithm of FASTQ read preprocess uses k-mer index by which the specific gene sequence search can be speedy and easy with a high performance and low system resource consumption. The term k-mer typically refers to all the possible substrings of length k that are contained in a string. In computational genomics, k-mers refer to all the possible subsequences (of length k) from a read obtained through DNA Sequencing. After building a k-mer dictionary (hash table), every key (single gene sequence) of this dictionary can map the specific read(s) immediately when the searching is performed. When the perfect match (exact match) made, app can count the match number for each gene sequence, and list them in the spreadsheet table. Furthermore, this spreadsheet of sequence matching counts can easily be exported to a csv file.
 
+![BellfortSequenceParser](BSP.png)
+
 ## Installation from Binaries
-- Download **[BellfortSequenceParser_Installer.exe](https://github.com/YangChuan80/BellfortSequenceParser/blob/master/BellfortSequenceParser_Installer.exe?raw=true)** file, which is a NSIS installation file only used in Windows platform. 
+- Download **[BellfortSequenceParser_Installer.exe](https://github.com/YangChuan80/BellfortSequenceParser/blob/master/BellfortSequenceParser_Installer.exe?raw=true)** file from **[here](https://github.com/YangChuan80/BellfortSequenceParser/blob/master/BellfortSequenceParser_Installer.exe?raw=true)**, which is a NSIS installation file only used in Windows platform. 
 - After downloading, you can install it directly. When finished, a folder with the same name have been made. Enter the folder BellfortSequenceParser, run the **BellfortSequenceParser.EXE** to go!
 
 ## Installation from Source
@@ -62,6 +66,8 @@ Python interpreter have to be Python 3.4 or higher.
 - Use **Export** to output a csv file of your count results. Your count report is ready! Congratulations!
 
 ## License
+
+**BSD 3-clause "New" or "Revised" License**
 
 Copyright (c) 2016, Chuan Yang
 
